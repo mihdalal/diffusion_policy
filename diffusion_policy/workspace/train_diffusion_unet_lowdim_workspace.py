@@ -6,7 +6,9 @@ if __name__ == "__main__":
     ROOT_DIR = str(pathlib.Path(__file__).parent.parent.parent)
     sys.path.append(ROOT_DIR)
     os.chdir(ROOT_DIR)
-
+import torch
+import torch._dynamo                                                    
+torch._dynamo.config.suppress_errors = True
 import os
 import hydra
 import torch
@@ -32,7 +34,6 @@ from diffusers.training_utils import EMAModel
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
 
-# %%
 class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
     include_keys = ['global_step', 'epoch']
 
@@ -48,6 +49,8 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         # configure model
         self.model: DiffusionUnetLowdimPolicy
         self.model = hydra.utils.instantiate(cfg.policy)
+        if not cfg.training.debug:
+            self.model.model = torch.compile(self.model.model, mode='max-autotune')
 
         self.ema_model: DiffusionUnetLowdimPolicy = None
         if cfg.training.use_ema:

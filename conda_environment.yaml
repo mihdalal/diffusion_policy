@@ -8,13 +8,13 @@ dependencies:
   - python=3.9
   - pip=22.2.2
   - cudatoolkit=11.6
-  - pytorch=1.12.1
-  - torchvision=0.13.1
+  - pytorch=2.1.0
+  - torchvision=0.16.0
   - pytorch3d=0.7.0
   - numpy=1.23.3
   - numba==0.56.4
   - scipy==1.9.1
-  - py-opencv=4.6.0
+  # - py-opencv=4.6.0
   - cffi=1.15.1
   - ipykernel=6.16
   - matplotlib=3.6.1
@@ -22,7 +22,7 @@ dependencies:
   - numcodecs=0.10.2
   - h5py=3.7.0
   - hydra-core=1.2.0
-  - einops=0.4.1
+  - einops=0.7.0
   - tqdm=4.64.1
   - dill=0.3.5.1
   - scikit-video=1.1.11
@@ -44,7 +44,7 @@ dependencies:
   - accelerate=0.13.2
   - datasets=2.6.1
   - diffusers=0.11.1
-  - av=10.0.0
+  # - av=10.0.0
   - cmake=3.24.3
   # trick to avoid cpu affinity issue described in https://github.com/pytorch/pytorch/issues/99625
   - llvm-openmp=14

@@ -58,6 +58,8 @@ def main(checkpoint, output_dir, device):
         else:
             json_log[key] = value
     out_path = os.path.join(output_dir, 'eval_log.json')
+    # make sure everything in json_log is float
+    json_log = {key: float(value) for key, value in json_log.items() if not isinstance(value, str)}
     json.dump(json_log, open(out_path, 'w'), indent=2, sort_keys=True)
 
 if __name__ == '__main__':

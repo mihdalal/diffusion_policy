@@ -2,11 +2,10 @@ from typing import List, Dict, Optional
 import numpy as np
 import gym
 from gym.spaces import Box
-from robomimic.envs.env_robosuite import EnvRobosuite
 
 class RobomimicLowdimWrapper(gym.Env):
     def __init__(self, 
-        env: EnvRobosuite,
+        env,
         obs_keys: List[str]=[
             'object', 
             'robot0_eef_pos', 

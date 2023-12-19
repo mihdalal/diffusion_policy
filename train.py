@@ -29,6 +29,9 @@ def main(cfg: OmegaConf):
 
     cls = hydra.utils.get_class(cfg._target_)
     workspace: BaseWorkspace = cls(cfg)
+    import torch
+    torch.backends.cudnn.benchmark = True
+    torch.set_float32_matmul_precision("medium")
     workspace.run()
 
 if __name__ == "__main__":
