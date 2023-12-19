@@ -81,12 +81,17 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
                             src_store=zip_store, store=zarr.MemoryStore())
                     print('Loaded!')
         else:
-            replay_buffer = _convert_robomimic_to_replay(
-                store=zarr.MemoryStore(), 
-                shape_meta=shape_meta, 
-                dataset_path=dataset_path, 
-                abs_action=abs_action, 
-                rotation_transformer=rotation_transformer)
+            zarr_path = dataset_path[:-len(".hdf5")] + '.zarr'
+            if os.path.exists(zarr_path):
+                root = zarr.open(zarr_path, mode='r')
+                replay_buffer = ReplayBuffer(root)
+            else:
+                replay_buffer = _convert_robomimic_to_replay(
+                    store=zarr.DirectoryStore(zarr_path), 
+                    shape_meta=shape_meta, 
+                    dataset_path=dataset_path, 
+                    abs_action=abs_action, 
+                    rotation_transformer=rotation_transformer)
 
         rgb_keys = list()
         pcd_keys = list()
@@ -378,45 +383,21 @@ def _convert_robomimic_to_replay(store, shape_meta, dataset_path, abs_action, ro
         # Save PCD data
         for key in tqdm(pcd_keys, desc="Loading PCD data"):
             data_key = 'obs/' + key
-            this_data = list()
-            for i in range(len(demos)):
+            z = None
+            for i in tqdm(range(len(demos))):
                 demo = demos[f'demo_{i}']
-                this_data.append(demo[data_key][:])
-            this_data = np.concatenate(this_data, axis=0)
-            assert this_data.shape == (n_steps,) + tuple(shape_meta['obs'][key]['shape'])
-            _ = data_group.array(
-                name=key,
-                data=this_data,
-                shape=this_data.shape,
-                chunks=this_data.shape,
-                compressor=None,
-                dtype=this_data.dtype
-            )
-        # for key in tqdm(pcd_keys, desc="Loading PCD data"):
-        #     data_key = 'obs/' + key
-        #     for i in range(len(demos)):
-        #         demo = demos[f'demo_{i}']
-        #         pcd_data = demo[data_key][:]
-                
-        #         # Depending on data size, further chunk processing might be needed
-        #         # For example: for j in range(0, len(pcd_data), chunk_size):
-        #         # chunk = pcd_data[j:j+chunk_size]
-
-        #         # Ensure shape conformity
-        #         assert pcd_data.shape[1:] == tuple(shape_meta['obs'][key]['shape'])
-
-        #         # Save each chunk to Zarr
-        #         zarr_idx_start = episode_starts[i]
-        #         zarr_idx_end = zarr_idx_start + pcd_data.shape[0]
-        #         _ = data_group.array(
-        #             name=key,
-        #             data=pcd_data,
-        #             shape=pcd_data.shape,
-        #             chunks=pcd_data.shape,
-        #             compressor=None,
-        #             dtype=pcd_data.dtype,
-        #             overwrite=False
-        #         )
+                demo_data = demo[data_key][:]
+                if i == 0:
+                    z = data_group.array(
+                        data=demo_data,
+                        name=key,
+                        shape=demo_data.shape,
+                        chunks=demo_data.shape,
+                        dtype=demo_data.dtype,
+                        overwrite=True
+                    )
+                else:
+                    z.append(demo_data)
 
     replay_buffer = ReplayBuffer(root)
     return replay_buffer
