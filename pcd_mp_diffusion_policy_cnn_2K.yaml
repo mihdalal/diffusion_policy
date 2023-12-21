@@ -35,6 +35,7 @@ logging:
   - train_diffusion_unet_pcd
   - mp_pcd
   - obs_global_rerun
+  - 2K
 multi_run:
   run_dir: data/outputs/2023.02.23/19.51.37_train_diffusion_unet_pcd_mp_pcd
   wandb_name_base: 2023.02.23-19.51.37_train_diffusion_unet_pcd_mp_pcd
@@ -94,7 +95,7 @@ task:
   dataset:
     _target_: diffusion_policy.dataset.robomimic_replay_pcd_dataset.RobomimicReplayPcdDataset
     abs_action: false
-    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_14336_pcd_abs.hdf5
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_2K_14336_pcd_abs.hdf5
     horizon: 16
     pad_after: 7
     pad_before: 1
@@ -112,13 +113,13 @@ task:
           - 14336
           - 4
           type: pcd
-  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_14336_pcd_abs.hdf5
+  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_2K_14336_pcd_abs.hdf5
   dataset_type: ph
   env_runner:
     _target_: diffusion_policy.env_runner.robomimic_pcd_runner.RobomimicPcdRunner
     abs_action: false
     crf: 22
-    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_14336_pcd_abs.hdf5
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_2K_14336_pcd_abs.hdf5
     fps: 10
     max_steps: 150
     n_action_steps: 8

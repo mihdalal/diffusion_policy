@@ -1,0 +1,180 @@
+_target_: diffusion_policy.workspace.train_diffusion_unet_hybrid_pcd_workspace.TrainDiffusionUnetHybridPcdWorkspace
+checkpoint:
+  save_last_ckpt: true
+  save_last_snapshot: false
+  topk:
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
+    k: 5
+    mode: max
+    monitor_key: test_mean_score
+dataloader:
+  batch_size: 256
+  num_workers: 16
+  persistent_workers: false
+  pin_memory: true
+  shuffle: true
+ema:
+  _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
+  inv_gamma: 1.0
+  max_value: 0.9999
+  min_value: 0.0
+  power: 0.75
+  update_after_step: 0
+exp_name: obs_global_rerun
+horizon: 16
+keypoint_dim: 3
+keypoint_visible_rate: 1.0
+logging:
+  group: null
+  id: null
+  mode: online
+  name: 2023.02.23-19.51.37_train_diffusion_unet_pcd_mp_pcd
+  project: diffusion_policy_debug
+  resume: true
+  tags:
+  - train_diffusion_unet_pcd
+  - mp_pcd
+  - obs_global_rerun
+  - 100K
+multi_run:
+  run_dir: data/outputs/2023.02.23/19.51.37_train_diffusion_unet_pcd_mp_pcd
+  wandb_name_base: 2023.02.23-19.51.37_train_diffusion_unet_pcd_mp_pcd
+n_action_steps: 8
+n_latency_steps: 0
+n_obs_steps: 2
+name: train_diffusion_unet_pcd
+obs_as_global_cond: true
+obs_as_local_cond: false
+optimizer:
+  _target_: torch.optim.AdamW
+  betas:
+  - 0.95
+  - 0.999
+  eps: 1.0e-08
+  lr: 0.0001
+  weight_decay: 1.0e-06
+past_action_visible: false
+policy:
+  _target_: diffusion_policy.policy.diffusion_unet_hybrid_pcd_policy.DiffusionUnetHybridPcdPolicy
+  horizon: 16
+  shape_meta:
+    action:
+      shape:
+      - 7
+    obs:
+      compute_pcd_params:
+        shape:
+        - 30
+        type: pcd
+  cond_predict_scale: true
+  diffusion_step_embed_dim: 256
+  down_dims:
+  - 256
+  - 512
+  - 1024
+  kernel_size: 5
+  n_groups: 8
+  n_action_steps: 8
+  n_obs_steps: 2
+  noise_scheduler:
+    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
+    beta_end: 0.02
+    beta_schedule: squaredcos_cap_v2
+    beta_start: 0.0001
+    clip_sample: true
+    num_train_timesteps: 100
+    prediction_type: epsilon
+    variance_type: fixed_small
+  num_inference_steps: 100
+  obs_as_global_cond: true
+  obs_encoder_group_norm: true
+pred_action_steps_only: false
+task:
+  abs_action: false
+  dataset:
+    _target_: diffusion_policy.dataset.robomimic_replay_pcd_dataset.RobomimicReplayPcdDataset
+    abs_action: false
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+    horizon: 16
+    pad_after: 7
+    pad_before: 1
+    rotation_rep: rotation_6d
+    seed: 42
+    use_legacy_normalizer: false
+    val_ratio: 0.02
+    shape_meta:
+      action:
+        shape:
+        - 7
+      obs:
+        compute_pcd_params:
+          shape:
+          - 30
+          type: pcd
+  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+  dataset_type: ph
+  env_runner:
+    _target_: diffusion_policy.env_runner.robomimic_pcd_runner.RobomimicPcdRunner
+    abs_action: false
+    crf: 22
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+    fps: 10
+    max_steps: 150
+    n_action_steps: 8
+    n_envs: 16
+    n_obs_steps: 2
+    n_test: 50
+    n_test_vis: 4
+    n_train: 6
+    n_train_vis: 2
+    past_action: false
+    render_hw:
+    - 128
+    - 128
+    test_start_seed: 100000
+    train_start_idx: 0
+    shape_meta:
+      action:
+        shape:
+        - 7
+      obs:
+        compute_pcd_params:
+          shape:
+          - 30
+          type: pcd
+  keypoint_dim: 3
+  name: mp_pcd
+  shape_meta:
+    action:
+      shape:
+      - 7
+    obs:
+      compute_pcd_params:
+        shape:
+        - 30
+        type: pcd
+  task_name: mp
+task_name: mp_pcd
+training:
+  checkpoint_every: 50
+  debug: false
+  device: cuda:0
+  gradient_accumulate_every: 1
+  lr_scheduler: cosine
+  lr_warmup_steps: 500
+  max_train_steps: null
+  max_val_steps: null
+  num_epochs: 8000
+  resume: true
+  rollout_every: 1
+  sample_every: 5
+  seed: 42
+  tqdm_interval_sec: 1.0
+  use_ema: true
+  val_every: 1
+val_dataloader:
+  batch_size: 256
+  num_workers: 16
+  persistent_workers: false
+  pin_memory: true
+  shuffle: false

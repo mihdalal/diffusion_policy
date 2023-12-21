@@ -3,6 +3,10 @@ import torch
 import numpy as np
 import h5py
 from tqdm import tqdm
+from neural_mp.envs.franka_pybullet_env import decompose_scene_pcd_params_obs
+from neural_mp.envs.franka_pybullet_env import compute_scene_oracle_pcd
+from robomimic.models.obs_core import vectorized_subsample
+from robofin.pointcloud.torch import FrankaSampler
 import zarr
 import os
 import shutil
@@ -44,7 +48,9 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
             use_legacy_normalizer=False,
             use_cache=False,
             seed=42,
-            val_ratio=0.0
+            val_ratio=0.0,
+            num_robot_points=2048,
+            num_obstacle_points=4096,
         ):
         rotation_transformer = RotationTransformer(
             from_rep='axis_angle', to_rep=rotation_rep)
@@ -81,17 +87,23 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
                             src_store=zip_store, store=zarr.MemoryStore())
                     print('Loaded!')
         else:
-            zarr_path = dataset_path[:-len(".hdf5")] + '.zarr'
-            if os.path.exists(zarr_path):
-                root = zarr.open(zarr_path, mode='r')
-                replay_buffer = ReplayBuffer(root)
-            else:
-                replay_buffer = _convert_robomimic_to_replay(
-                    store=zarr.DirectoryStore(zarr_path), 
-                    shape_meta=shape_meta, 
-                    dataset_path=dataset_path, 
-                    abs_action=abs_action, 
-                    rotation_transformer=rotation_transformer)
+            # zarr_path = dataset_path[:-len(".hdf5")] + '.zarr'
+            # if os.path.exists(zarr_path):
+            #     root = zarr.open(zarr_path, mode='r')
+            #     replay_buffer = ReplayBuffer(root)
+            # else:
+            #     replay_buffer = _convert_robomimic_to_replay(
+            #         store=zarr.DirectoryStore(zarr_path), 
+            #         shape_meta=shape_meta, 
+            #         dataset_path=dataset_path, 
+            #         abs_action=abs_action, 
+            #         rotation_transformer=rotation_transformer)
+            replay_buffer = _convert_robomimic_to_replay(
+                store=zarr.MemoryStore(), 
+                shape_meta=shape_meta, 
+                dataset_path=dataset_path, 
+                abs_action=abs_action, 
+                rotation_transformer=rotation_transformer)
 
         rgb_keys = list()
         pcd_keys = list()
@@ -141,6 +153,9 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
         self.pad_before = pad_before
         self.pad_after = pad_after
         self.use_legacy_normalizer = use_legacy_normalizer
+        self.fk_sampler = FrankaSampler("cpu", use_cache=True, num_fixed_points=4096)
+        self.num_robot_points = num_robot_points
+        self.num_obstacle_points = num_obstacle_points
 
     def get_validation_dataset(self):
         val_set = copy.copy(self)
@@ -194,8 +209,14 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
         
         # pcd
         for key in self.pcd_keys:
+            pcd_size = self.num_robot_points * 2 + self.num_obstacle_points
             normalizer[key] = get_identity_normalizer_from_stat(
-                array_to_stats(self.replay_buffer[key])
+                dict(
+                    max=np.ones((pcd_size, 4)).astype(np.float32),
+                    min=-np.ones((pcd_size, 4)).astype(np.float32),
+                    mean=np.ones((pcd_size, 4)).astype(np.float32),
+                    std=np.ones((pcd_size, 4)).astype(np.float32),
+                )
             )
         return normalizer
 
@@ -229,6 +250,16 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
             del data[key]
         for key in self.pcd_keys:
             obs_dict[key] = data[key][T_slice].astype(np.float32)
+            # convert from pcd params to pcd
+            num_robot_points = self.num_robot_points
+            num_obstacle_points = self.num_obstacle_points
+
+            obs_dict[key] = compute_full_pcd(
+                pcd_params=obs_dict[key],
+                num_robot_points=num_robot_points,
+                num_obstacle_points=num_obstacle_points,
+                fk_sampler=self.fk_sampler
+            )
             del data[key]
 
         torch_data = {
@@ -305,7 +336,7 @@ def _convert_robomimic_to_replay(store, shape_meta, dataset_path, abs_action, ro
             dtype=np.int64, compressor=None, overwrite=True)
 
         # save lowdim data
-        for key in tqdm(lowdim_keys + ['action'], desc="Loading lowdim data"):
+        for key in tqdm(lowdim_keys + ['action'] + pcd_keys, desc="Loading lowdim data"):
             data_key = 'obs/' + key
             if key == 'action':
                 data_key = 'actions'
@@ -381,23 +412,23 @@ def _convert_robomimic_to_replay(store, shape_meta, dataset_path, abs_action, ro
                 pbar.update(len(completed))
         
         # Save PCD data
-        for key in tqdm(pcd_keys, desc="Loading PCD data"):
-            data_key = 'obs/' + key
-            z = None
-            for i in tqdm(range(len(demos))):
-                demo = demos[f'demo_{i}']
-                demo_data = demo[data_key][:]
-                if i == 0:
-                    z = data_group.array(
-                        data=demo_data,
-                        name=key,
-                        shape=demo_data.shape,
-                        chunks=demo_data.shape,
-                        dtype=demo_data.dtype,
-                        overwrite=True
-                    )
-                else:
-                    z.append(demo_data)
+        # for key in tqdm(pcd_keys, desc="Loading PCD data"):
+        #     data_key = 'obs/' + key
+        #     z = None
+        #     for i in tqdm(range(len(demos))):
+        #         demo = demos[f'demo_{i}']
+        #         demo_data = demo[data_key][:]
+        #         if i == 0:
+        #             z = data_group.array(
+        #                 data=demo_data,
+        #                 name=key,
+        #                 shape=demo_data.shape,
+        #                 chunks=demo_data.shape,
+        #                 dtype=demo_data.dtype,
+        #                 overwrite=True
+        #             )
+        #         else:
+        #             z.append(demo_data)
 
     replay_buffer = ReplayBuffer(root)
     return replay_buffer
@@ -411,3 +442,24 @@ def normalizer_from_stat(stat):
         offset=offset,
         input_stats_dict=stat
     )
+
+def compute_full_pcd(pcd_params, num_robot_points, num_obstacle_points, fk_sampler):
+    joint_angles, goal_angles, scene_pcd_params = pcd_params[:, :7], pcd_params[:, 7:14], pcd_params[:, 14:]
+    scene_pcd_params = scene_pcd_params[0] # key trick: the scene does not change within a single episode!
+    decomposed_scene_pcd_params = decompose_scene_pcd_params_obs(scene_pcd_params)
+    scene_pcd = compute_scene_oracle_pcd(num_obstacle_points, *decomposed_scene_pcd_params)
+    # copy scene_pcd to all timesteps
+    scene_pcd = np.tile(scene_pcd, (pcd_params.shape[0], 1, 1))
+    robot_pcd = fk_sampler.sample(torch.from_numpy(joint_angles))
+    robot_pcd = vectorized_subsample(robot_pcd, dim=1, num_points=num_robot_points).numpy()
+    
+    target_robot_pcd = fk_sampler.sample(torch.from_numpy(goal_angles))
+    target_robot_pcd = vectorized_subsample(target_robot_pcd, dim=1, num_points=num_robot_points).numpy()
+    # add an extra column to robot_pcd (in the last dim) of zeros
+    robot_pcd = np.concatenate([robot_pcd, np.zeros_like(robot_pcd[...,0:1])], axis=-1)
+    # add an extra column to scene_pcd (in the last dim) of ones
+    scene_pcd = np.concatenate([scene_pcd, np.ones_like(scene_pcd[...,0:1])], axis=-1)
+    # add an extra column to target_robot_pcd (in the last dim) of twos
+    target_robot_pcd = np.concatenate([target_robot_pcd, 2*np.ones_like(target_robot_pcd[...,0:1])], axis=-1)
+
+    return np.concatenate([robot_pcd, target_robot_pcd, scene_pcd], axis=1).astype(np.float32)

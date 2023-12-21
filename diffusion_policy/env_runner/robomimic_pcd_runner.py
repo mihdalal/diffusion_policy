@@ -14,11 +14,13 @@ from diffusion_policy.gym_util.sync_vector_env import SyncVectorEnv
 from diffusion_policy.gym_util.multistep_wrapper import MultiStepWrapper
 from diffusion_policy.gym_util.video_recording_wrapper import VideoRecordingWrapper, VideoRecorder
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
+from diffusion_policy.dataset.robomimic_replay_pcd_dataset import compute_full_pcd
 
 from diffusion_policy.policy.base_pcd_policy import BasePcdPolicy
 from diffusion_policy.common.pytorch_util import dict_apply
 from diffusion_policy.env_runner.base_pcd_runner import BasePcdRunner
 from diffusion_policy.env.robomimic.robomimic_pcd_wrapper import RobomimicPcdWrapper
+from robofin.pointcloud.torch import FrankaSampler
 import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.obs_utils as ObsUtils
@@ -65,7 +67,9 @@ class RobomimicPcdRunner(BasePcdRunner):
             past_action=False,
             abs_action=False,
             tqdm_interval_sec=5.0,
-            n_envs=None
+            n_envs=None,
+            num_robot_points=2048,
+            num_obstacle_points=4096,
         ):
         super().__init__(output_dir)
 
@@ -240,6 +244,9 @@ class RobomimicPcdRunner(BasePcdRunner):
         self.rotation_transformer = rotation_transformer
         self.abs_action = abs_action
         self.tqdm_interval_sec = tqdm_interval_sec
+        self.fk_sampler = FrankaSampler("cpu", use_cache=True, num_fixed_points=4096)
+        self.num_robot_points = num_robot_points
+        self.num_obstacle_points = num_obstacle_points
 
     def run(self, policy: BasePcdPolicy):
         device = policy.device
@@ -289,7 +296,13 @@ class RobomimicPcdRunner(BasePcdRunner):
                     # TODO: not tested
                     np_obs_dict['past_action'] = past_action[
                         :,-(self.n_obs_steps-1):].astype(np.float32)
-                
+                pcd_params = np_obs_dict['compute_pcd_params'] # (n_envs, n_obs, -1)
+                pcds = []
+                for idx in range(pcd_params.shape[0]):
+                    pcd = compute_full_pcd(pcd_params[idx], self.num_robot_points, self.num_obstacle_points, self.fk_sampler)
+                    pcds.append(pcd)
+                pcds = np.stack(pcds, axis=0)
+                np_obs_dict['compute_pcd_params'] = pcds
                 # device transfer
                 obs_dict = dict_apply(np_obs_dict, 
                     lambda x: torch.from_numpy(x).to(
