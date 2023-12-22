@@ -1,0 +1,46 @@
+name: mp_lowdim
+
+obs_dim: 14
+action_dim: 7
+keypoint_dim: 3
+
+obs_keys: &obs_keys ['current_angles', 'goal_angles']
+task_name: &task_name mp
+dataset_type: &dataset_type ph
+dataset_path: &dataset_path /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_abs.hdf5
+abs_action: &abs_action False
+
+env_runner:
+  _target_: diffusion_policy.env_runner.robomimic_lowdim_runner.RobomimicLowdimRunner
+  dataset_path: *dataset_path
+  obs_keys: *obs_keys
+  n_train: 6
+  n_train_vis: 2
+  train_start_idx: 0
+  n_test: 50
+  n_test_vis: 4
+  test_start_seed: 100000
+  # use python's eval function as resolver, single-quoted string as argument
+  max_steps: 150
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  n_latency_steps: ${n_latency_steps}
+  render_hw: [128,128]
+  fps: 10
+  crf: 22
+  past_action: ${past_action_visible}
+  abs_action: *abs_action
+  n_envs: 16
+
+dataset:
+  _target_: diffusion_policy.dataset.robomimic_replay_lowdim_dataset.RobomimicReplayLowdimDataset
+  dataset_path: *dataset_path
+  horizon: ${horizon}
+  pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
+  pad_after: ${eval:'${n_action_steps}-1'}
+  obs_keys: *obs_keys
+  abs_action: *abs_action
+  use_legacy_normalizer: False
+  rotation_rep: rotation_6d
+  seed: 42
+  val_ratio: 0.02

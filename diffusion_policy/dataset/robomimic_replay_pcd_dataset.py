@@ -3,8 +3,7 @@ import torch
 import numpy as np
 import h5py
 from tqdm import tqdm
-from neural_mp.envs.franka_pybullet_env import decompose_scene_pcd_params_obs
-from neural_mp.envs.franka_pybullet_env import compute_scene_oracle_pcd
+from neural_mp.envs.franka_pybullet_env import compute_scene_oracle_pcd, decompose_scene_pcd_params_obs, compute_full_pcd
 from robomimic.models.obs_core import vectorized_subsample
 from robofin.pointcloud.torch import FrankaSampler
 import zarr
@@ -442,24 +441,3 @@ def normalizer_from_stat(stat):
         offset=offset,
         input_stats_dict=stat
     )
-
-def compute_full_pcd(pcd_params, num_robot_points, num_obstacle_points, fk_sampler):
-    joint_angles, goal_angles, scene_pcd_params = pcd_params[:, :7], pcd_params[:, 7:14], pcd_params[:, 14:]
-    scene_pcd_params = scene_pcd_params[0] # key trick: the scene does not change within a single episode!
-    decomposed_scene_pcd_params = decompose_scene_pcd_params_obs(scene_pcd_params)
-    scene_pcd = compute_scene_oracle_pcd(num_obstacle_points, *decomposed_scene_pcd_params)
-    # copy scene_pcd to all timesteps
-    scene_pcd = np.tile(scene_pcd, (pcd_params.shape[0], 1, 1))
-    robot_pcd = fk_sampler.sample(torch.from_numpy(joint_angles))
-    robot_pcd = vectorized_subsample(robot_pcd, dim=1, num_points=num_robot_points).numpy()
-    
-    target_robot_pcd = fk_sampler.sample(torch.from_numpy(goal_angles))
-    target_robot_pcd = vectorized_subsample(target_robot_pcd, dim=1, num_points=num_robot_points).numpy()
-    # add an extra column to robot_pcd (in the last dim) of zeros
-    robot_pcd = np.concatenate([robot_pcd, np.zeros_like(robot_pcd[...,0:1])], axis=-1)
-    # add an extra column to scene_pcd (in the last dim) of ones
-    scene_pcd = np.concatenate([scene_pcd, np.ones_like(scene_pcd[...,0:1])], axis=-1)
-    # add an extra column to target_robot_pcd (in the last dim) of twos
-    target_robot_pcd = np.concatenate([target_robot_pcd, 2*np.ones_like(target_robot_pcd[...,0:1])], axis=-1)
-
-    return np.concatenate([robot_pcd, target_robot_pcd, scene_pcd], axis=1).astype(np.float32)

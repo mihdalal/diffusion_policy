@@ -117,7 +117,7 @@ task:
     fps: 10
     max_steps: 150
     n_action_steps: 8
-    n_envs: 28
+    n_envs: 16
     n_latency_steps: 0
     n_obs_steps: 2
     n_test: 50
