@@ -124,7 +124,8 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         wandb.config.update(
             {
                 "output_dir": self.output_dir,
-            }
+            },
+            allow_val_change=True
         )
 
         # configure checkpoint
