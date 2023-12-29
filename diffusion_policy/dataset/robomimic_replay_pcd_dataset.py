@@ -3,8 +3,7 @@ import torch
 import numpy as np
 import h5py
 from tqdm import tqdm
-from neural_mp.envs.franka_pybullet_env import compute_scene_oracle_pcd, decompose_scene_pcd_params_obs, compute_full_pcd
-from robomimic.models.obs_core import vectorized_subsample
+from neural_mp.envs.franka_pybullet_env import compute_full_pcd
 from robofin.pointcloud.torch import FrankaSampler
 import zarr
 import os
@@ -252,7 +251,6 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
             # convert from pcd params to pcd
             num_robot_points = self.num_robot_points
             num_obstacle_points = self.num_obstacle_points
-
             obs_dict[key] = compute_full_pcd(
                 pcd_params=obs_dict[key],
                 num_robot_points=num_robot_points,
@@ -323,8 +321,8 @@ def _convert_robomimic_to_replay(store, shape_meta, dataset_path, abs_action, ro
         demos = file['data']
         episode_ends = list()
         prev_end = 0
-        for i in range(len(demos)):
-            demo = demos[f'demo_{i}']
+        for demo_key in list(demos.keys()):
+            demo = demos[demo_key]
             episode_length = demo['actions'].shape[0]
             episode_end = prev_end + episode_length
             prev_end = episode_end
@@ -340,8 +338,8 @@ def _convert_robomimic_to_replay(store, shape_meta, dataset_path, abs_action, ro
             if key == 'action':
                 data_key = 'actions'
             this_data = list()
-            for i in range(len(demos)):
-                demo = demos[f'demo_{i}']
+            for demo_key in list(demos.keys()):
+                demo = demos[demo_key]
                 this_data.append(demo[data_key][:].astype(np.float32))
             this_data = np.concatenate(this_data, axis=0)
             if key == 'action':

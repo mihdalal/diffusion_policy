@@ -380,7 +380,8 @@ class RobomimicPcdRunner(BasePcdRunner):
             name = prefix+key
             value = np.mean(value)
             log_data[name] = value
-
+        import json
+        print(json.dumps({k:v for k, v in log_data.items() if 'video' not in k}, indent=4))
         return log_data
 
     def undo_transform_action(self, action):

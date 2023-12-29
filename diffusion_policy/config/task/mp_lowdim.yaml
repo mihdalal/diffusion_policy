@@ -7,7 +7,7 @@ keypoint_dim: 3
 obs_keys: &obs_keys ['current_angles', 'goal_angles']
 task_name: &task_name mp
 dataset_type: &dataset_type ph
-dataset_path: &dataset_path /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_abs.hdf5
+dataset_path: &dataset_path '/home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_pcd_params_obs_delta_false.hdf5'
 abs_action: &abs_action False
 
 env_runner:

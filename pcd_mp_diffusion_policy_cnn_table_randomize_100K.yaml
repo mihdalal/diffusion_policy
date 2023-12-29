@@ -1,5 +1,4 @@
-_target_: diffusion_policy.workspace.train_diffusion_unet_lowdim_workspace.TrainDiffusionUnetLowdimWorkspace
-action_dim: 7
+_target_: diffusion_policy.workspace.train_diffusion_unet_hybrid_pcd_workspace.TrainDiffusionUnetHybridPcdWorkspace
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
@@ -10,7 +9,7 @@ checkpoint:
     monitor_key: test_mean_score
 dataloader:
   batch_size: 256
-  num_workers: 1
+  num_workers: 16
   persistent_workers: false
   pin_memory: true
   shuffle: true
@@ -29,23 +28,23 @@ logging:
   group: null
   id: null
   mode: online
-  name: 2023.02.23-19.51.37_train_diffusion_unet_lowdim_mp_lowdim
+  name: 2023.02.23-19.51.37_train_diffusion_unet_pcd_mp_pcd
   project: diffusion_policy_debug
   resume: true
   tags:
-  - train_diffusion_unet_lowdim
-  - mp_lowdim
+  - train_diffusion_unet_pcd
+  - mp_pcd
   - obs_global_rerun
+  - 100K
 multi_run:
-  run_dir: data/outputs/2023.02.23/19.51.37_train_diffusion_unet_lowdim_mp_lowdim
-  wandb_name_base: 2023.02.23-19.51.37_train_diffusion_unet_lowdim_mp_lowdim
+  run_dir: data/outputs/2023.02.23/19.51.37_train_diffusion_unet_pcd_mp_pcd
+  wandb_name_base: 2023.02.23-19.51.37_train_diffusion_unet_pcd_mp_pcd
 n_action_steps: 8
 n_latency_steps: 0
 n_obs_steps: 2
-name: train_diffusion_unet_lowdim
+name: train_diffusion_unet_pcd
 obs_as_global_cond: true
 obs_as_local_cond: false
-obs_dim: 14
 optimizer:
   _target_: torch.optim.AdamW
   betas:
@@ -56,22 +55,25 @@ optimizer:
   weight_decay: 1.0e-06
 past_action_visible: false
 policy:
-  _target_: diffusion_policy.policy.diffusion_unet_lowdim_policy.DiffusionUnetLowdimPolicy
-  action_dim: 7
+  _target_: diffusion_policy.policy.diffusion_unet_hybrid_pcd_policy.DiffusionUnetHybridPcdPolicy
   horizon: 16
-  model:
-    _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
-    cond_predict_scale: true
-    diffusion_step_embed_dim: 256
-    down_dims:
-    - 256
-    - 512
-    - 1024
-    global_cond_dim: 28
-    input_dim: 7
-    kernel_size: 5
-    local_cond_dim: null
-    n_groups: 8
+  shape_meta:
+    action:
+      shape:
+      - 7
+    obs:
+      compute_pcd_params:
+        shape:
+        - 135
+        type: pcd
+  cond_predict_scale: true
+  diffusion_step_embed_dim: 256
+  down_dims:
+  - 256
+  - 512
+  - 1024
+  kernel_size: 5
+  n_groups: 8
   n_action_steps: 8
   n_obs_steps: 2
   noise_scheduler:
@@ -84,63 +86,75 @@ policy:
     prediction_type: epsilon
     variance_type: fixed_small
   num_inference_steps: 100
-  oa_step_convention: true
   obs_as_global_cond: true
-  obs_as_local_cond: false
-  obs_dim: 14
-  pred_action_steps_only: false
+  obs_encoder_group_norm: true
 pred_action_steps_only: false
 task:
   abs_action: false
-  action_dim: 7
   dataset:
-    _target_: diffusion_policy.dataset.robomimic_replay_lowdim_dataset.RobomimicReplayLowdimDataset
+    _target_: diffusion_policy.dataset.robomimic_replay_pcd_dataset.RobomimicReplayPcdDataset
     abs_action: false
-    dataset_path: '/home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_pcd_params_obs_delta_false.hdf5'
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_100K_pcd_params_obs_delta_false.hdf5
     horizon: 16
-    obs_keys:
-    - current_angles
-    - goal_angles
     pad_after: 7
     pad_before: 1
     rotation_rep: rotation_6d
     seed: 42
     use_legacy_normalizer: false
     val_ratio: 0.02
-  dataset_path: '/home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_pcd_params_obs_delta_false.hdf5'
+    shape_meta:
+      action:
+        shape:
+        - 7
+      obs:
+        compute_pcd_params:
+          shape:
+          - 135
+          type: pcd
+  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_100K_pcd_params_obs_delta_false.hdf5
   dataset_type: ph
   env_runner:
-    _target_: diffusion_policy.env_runner.robomimic_lowdim_runner.RobomimicLowdimRunner
+    _target_: diffusion_policy.env_runner.robomimic_pcd_runner.RobomimicPcdRunner
     abs_action: false
     crf: 22
-    dataset_path: '/home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_10K_pcd_params_obs_delta_false.hdf5'
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_100K_pcd_params_obs_delta_false.hdf5
     fps: 10
     max_steps: 150
     n_action_steps: 8
     n_envs: 16
-    n_latency_steps: 0
     n_obs_steps: 2
-    n_test: 50
+    n_test: 48
     n_test_vis: 4
     n_train: 6
     n_train_vis: 2
-    obs_keys:
-    - current_angles
-    - goal_angles
     past_action: false
     render_hw:
     - 128
     - 128
     test_start_seed: 100000
     train_start_idx: 0
+    shape_meta:
+      action:
+        shape:
+        - 7
+      obs:
+        compute_pcd_params:
+          shape:
+          - 135
+          type: pcd
   keypoint_dim: 3
-  name: mp_lowdim
-  obs_dim: 14
-  obs_keys:
-  - current_angles
-  - goal_angles
+  name: mp_pcd
+  shape_meta:
+    action:
+      shape:
+      - 7
+    obs:
+      compute_pcd_params:
+        shape:
+        - 135
+        type: pcd
   task_name: mp
-task_name: mp_lowdim
+task_name: mp_pcd
 training:
   checkpoint_every: 50
   debug: false
@@ -150,9 +164,9 @@ training:
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 5000
+  num_epochs: 8000
   resume: true
-  rollout_every: 50
+  rollout_every: 1
   sample_every: 5
   seed: 42
   tqdm_interval_sec: 1.0
@@ -160,7 +174,7 @@ training:
   val_every: 1
 val_dataloader:
   batch_size: 256
-  num_workers: 1
+  num_workers: 16
   persistent_workers: false
   pin_memory: true
   shuffle: false
