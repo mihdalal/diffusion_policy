@@ -25,7 +25,7 @@ def function(output_dir, checkpoint_path=None):
     def handler(signum, frame):
         print('Signal handler called with signal', signum)
         workspace.save_checkpoint()
-        exit(0)
+        exit()
     import signal 
     signal.signal(signal.SIGUSR1, handler)
     workspace.run()
@@ -35,5 +35,4 @@ if __name__ == "__main__":
     import sys
     output_dir = sys.argv[1]
     checkpoint_path = sys.argv[2]
-    import ipdb; ipdb.set_trace()
     function(output_dir, checkpoint_path)

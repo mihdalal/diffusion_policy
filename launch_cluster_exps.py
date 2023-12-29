@@ -9,13 +9,13 @@ import json
 import subprocess
 
 slurm_additional_parameters = {
-    "partition": "russ_reserved",
-    "time": "72:00:00",
+    "partition": "all",
+    "time": "6:00:00",
     "gpus": 1,
     "cpus_per_gpu": 20,
     "mem": "62g",
-    "exclude": "matrix-1-[4,8,10,12,16],matrix-0-[24,38]",
-    "signal": "USR1@30",
+    #"exclude": "matrix-1-[4,8,10,12,16],matrix-0-[24,38]",
+    "nodelist": "grogu-1-3"
 }
 import pathlib
 
@@ -28,6 +28,7 @@ class WrappedCallable(submitit.helpers.Checkpointable):
         self.sif_path = sif_path
         self.python_path = python_path
         self.file_path = file_path
+        self.p = None
 
     def __call__(self, checkpoint_path=None):
         """
@@ -36,14 +37,22 @@ class WrappedCallable(submitit.helpers.Checkpointable):
         for some reason if we don't do this, the cfg resolve phase fails 
         """
         # launch function in a singularity container: 
-        python_cmd = subprocess.check_output("which python", shell=True).decode("utf-8")[:-1]
-        singularity_path = '/opt/singularity/bin/singularity'
-        subprocess.run([singularity_path, 'exec', '--nv', self.sif_path, self.python_path, 
-                        self.file_path, self.output_dir, str(checkpoint_path)], capture_output=True)
+        singularity_path = 'singularity'
+        cmd = f"{singularity_path} exec --nv {self.sif_path} {self.python_path} {self.file_path} {self.output_dir} \'{str(checkpoint_path)}\'"
+        self.p = subprocess.Popen(cmd, shell=True)
+        while True:
+            pass
 
     def checkpoint(self, checkpointpath: str) -> submitit.helpers.DelayedSubmission:
+        print("sending checkpoint signal")
+        import signal
+        os.kill(self.p.pid, signal.SIGUSR1)
+        print("wait for 30s")
+        time.sleep(30)
+        print("setup new callable")
         wrapped_callable = WrappedCallable(self.output_dir, self.sif_path, self.python_path, self.file_path)
         checkpoint_path = pathlib.Path(self.output_dir).joinpath('checkpoints', f'latest.ckpt')
+        print("RESUBMITTING")
         return submitit.helpers.DelayedSubmission(wrapped_callable, checkpoint_path)
     
 
@@ -53,7 +62,7 @@ class WrappedCallable(submitit.helpers.Checkpointable):
         'diffusion_policy','config'))
 )
 def main(cfg: DictConfig):
-    sif_path = "/projects/rsalakhugroup/containers/neural_mp.sif"
+    sif_path = "/home/sbahl2/research/neural_mp/neural_mp/containers/neural_mp_bash.sif"
     # Generate the command
     output_dir = HydraConfig.get().runtime.output_dir
     cfg_process = cfg.copy()
@@ -72,21 +81,6 @@ def main(cfg: DictConfig):
     wrapped_callable = WrappedCallable(output_dir, sif_path, python_cmd, file_path)
     t0 = time.time()
     job = executor.submit(wrapped_callable, None)
-
-    print(f"Scheduled {job}.")
-    # Wait for the job to be running.
-    # while job.state != "RUNNING":
-    #     time.sleep(1)
-
-    # Simulate preemption.
-    # Tries to stop the job after the first stage.
-    # If the job is preempted before the end of the first stage, try to increase it.
-    # If the job is not preempted, try to decrease it.
-    # time.sleep(300)
-    # print(f"preempting {job} after {time.time() - t0:.0f}s")
-    # job._interrupt()
-
-    score = job.result()
 
 if __name__ == "__main__":
     main()
