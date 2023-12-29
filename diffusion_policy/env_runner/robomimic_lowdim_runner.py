@@ -238,6 +238,7 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
         # allocate data
         all_video_paths = [None] * n_inits
         all_rewards = [None] * n_inits
+        all_infos = []
 
         for chunk_idx in range(n_chunks):
             start = chunk_idx * n_envs
@@ -313,6 +314,8 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
             # collect data for this round
             all_video_paths[this_global_slice] = env.render()[this_local_slice]
             all_rewards[this_global_slice] = env.call('get_attr', 'reward')[this_local_slice]
+            info_dict = {key: np.array([d[key][-1] for d in info]) for key in info[0]}
+            all_infos.append(info_dict)
 
         # log
         max_rewards = collections.defaultdict(list)
@@ -330,7 +333,7 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
             prefix = self.env_prefixs[i]
             max_reward = np.max(all_rewards[i])
             max_rewards[prefix].append(max_reward)
-            log_data[prefix+f'sim_max_reward_{seed}'] = max_reward
+            # log_data[prefix+f'sim_max_reward_{seed}'] = max_reward
 
             # visualize sim
             video_path = all_video_paths[i]
@@ -341,6 +344,14 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
         # log aggregate metrics
         for prefix, value in max_rewards.items():
             name = prefix+'mean_score'
+            value = np.mean(value)
+            log_data[name] = value
+        
+        for key, _ in info_dict.items():
+            value = []
+            for idx in range(len(all_infos)):
+                value.append(np.mean(all_infos[idx][key]))
+            name = prefix+key
             value = np.mean(value)
             log_data[name] = value
 
