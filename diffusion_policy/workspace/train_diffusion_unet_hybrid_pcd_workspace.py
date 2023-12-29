@@ -46,7 +46,7 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
         # configure model
         self.model: DiffusionUnetHybridPcdPolicy = hydra.utils.instantiate(cfg.policy)
         if not cfg.training.debug:
-            self.model.model = torch.compile(self.model.model)
+            self.model.model = torch.compile(self.model.model, mode='max-autotune')
 
         self.ema_model: DiffusionUnetHybridPcdPolicy = None
         if cfg.training.use_ema:

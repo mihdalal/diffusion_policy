@@ -74,7 +74,9 @@ class DiffusionUnetHybridPcdPolicy(BasePcdPolicy):
         #     hdf5_type='image',
         #     task_name='square',
         #     dataset_type='ph')
-        config_path = "/home/mdalal/research/neural_mp/robomimic/robomimic/exps/mp/bc_rnn_pcd_only_pcd_small.json"
+        import robomimic
+        robomimic_path = robomimic.__file__[:-len("__init__.py")]
+        config_path = robomimic_path + "exps/mp/bc_rnn_pcd_only_pcd_small.json"
         ext_cfg = json.load(open(config_path, 'r'))
         config = config_factory(ext_cfg["algo_name"])
         # update config with external json - this will throw errors if
