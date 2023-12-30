@@ -10,6 +10,7 @@ def function(output_dir, checkpoint_path=None):
 
     import json
     import os
+    os.environ['WANDB_API_KEY'] = "010fcba9b0530d8e86f54a8e7e68725a06be7dba"
     with open(os.path.join(output_dir, 'cfg.json'), 'r') as f:
         cfg_dict = json.load(f)
 
