@@ -94,7 +94,7 @@ task:
   dataset:
     _target_: diffusion_policy.dataset.robomimic_replay_pcd_dataset.RobomimicReplayPcdDataset
     abs_action: false
-    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_delta_false.hdf5
     horizon: 16
     pad_after: 7
     pad_before: 1
@@ -111,13 +111,13 @@ task:
           shape:
           - 30
           type: pcd
-  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+  dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_delta_false.hdf5
   dataset_type: ph
   env_runner:
     _target_: diffusion_policy.env_runner.robomimic_pcd_runner.RobomimicPcdRunner
     abs_action: false
     crf: 22
-    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_abs_combined.hdf5
+    dataset_path:  /home/mdalal/research/neural_mp/neural_mp/datasets/table_simple_100K_pcd_params_obs_delta_false.hdf5
     fps: 10
     max_steps: 150
     n_action_steps: 8
