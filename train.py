@@ -31,6 +31,8 @@ def main(cfg: OmegaConf):
     workspace: BaseWorkspace = cls(cfg)
     import torch
     torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     torch.set_float32_matmul_precision("medium")
     workspace.run()
 
