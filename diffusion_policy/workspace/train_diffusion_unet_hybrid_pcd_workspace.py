@@ -150,8 +150,15 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
             cfg.training.val_every = 1
             cfg.training.sample_every = 1
 
+        best_val_loss = float('inf')
+        best_test_score = 0
         # training loop
         log_path = os.path.join(self.output_dir, 'logs.json.txt')
+        ckpt_log_path = os.path.join(self.output_dir, 'checkpoint_logs.txt')
+        # create ckpt log path file
+        if not os.path.exists(ckpt_log_path):
+            with open(ckpt_log_path, 'w') as f:
+                f.write('')
         with JsonLogger(log_path) as json_logger:
             for local_epoch_idx in range(cfg.training.num_epochs):
                 step_log = dict()
@@ -219,6 +226,15 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
                     # log all
                     step_log.update(runner_log)
 
+                    test_score = runner_log['test/mean_score']
+                    if test_score > best_test_score:
+                        best_test_score = test_score
+                        best_ckpt_path = os.path.join(self.output_dir, 'checkpoints', 'best_test_score.ckpt')
+                        self.save_checkpoint(path=best_ckpt_path)
+                        # save the value and epoch of the best test score to a txt file
+                        with open(ckpt_log_path, 'a') as f:
+                            f.write(f'Best test score: {best_test_score} at epoch {self.epoch}\n')
+
                 # run validation
                 if (self.epoch % cfg.training.val_every) == 0:
                     with torch.no_grad():
@@ -236,6 +252,14 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
                             val_loss = torch.mean(torch.tensor(val_losses)).item()
                             # log epoch average validation loss
                             step_log['val_loss'] = val_loss
+
+                            if val_loss < best_val_loss:
+                                best_val_loss = val_loss
+                                best_ckpt_path = os.path.join(self.output_dir, 'checkpoints', 'best_val_loss.ckpt')
+                                self.save_checkpoint(path=best_ckpt_path)
+
+                                with open(ckpt_log_path, 'a') as f:
+                                    f.write(f'Best val loss: {best_val_loss} at epoch {self.epoch}\n')
 
                 # run diffusion sampling on a training batch
                 if (self.epoch % cfg.training.sample_every) == 0:
@@ -277,6 +301,7 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
 
                     if topk_ckpt_path is not None:
                         self.save_checkpoint(path=topk_ckpt_path)
+                    
                 # ========= eval end for this epoch ==========
                 policy.train()
 

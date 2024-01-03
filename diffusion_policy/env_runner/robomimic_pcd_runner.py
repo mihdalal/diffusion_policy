@@ -217,9 +217,9 @@ class RobomimicPcdRunner(BasePcdRunner):
                     env.env.file_path = filename
 
                 # switch to seed reset
-                assert isinstance(env.env.env, RobomimicPcdWrapper)
-                env.env.env.init_state = None
-                env.seed(seed)
+                # assert isinstance(env.env.env, RobomimicPcdWrapper)
+                # env.env.env.init_state = None
+                # env.seed(seed)
 
             env_seeds.append(seed)
             env_prefixs.append('test/')
