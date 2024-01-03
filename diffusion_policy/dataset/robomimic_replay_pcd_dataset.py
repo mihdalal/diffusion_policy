@@ -4,7 +4,6 @@ import numpy as np
 import h5py
 from tqdm import tqdm
 from neural_mp.envs.franka_pybullet_env import compute_full_pcd
-from robofin.pointcloud.torch import FrankaSampler
 import zarr
 import os
 import shutil
@@ -151,7 +150,6 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
         self.pad_before = pad_before
         self.pad_after = pad_after
         self.use_legacy_normalizer = use_legacy_normalizer
-        self.fk_sampler = FrankaSampler("cpu", use_cache=True, num_fixed_points=4096)
         self.num_robot_points = num_robot_points
         self.num_obstacle_points = num_obstacle_points
 
@@ -255,7 +253,6 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
                 pcd_params=obs_dict[key],
                 num_robot_points=num_robot_points,
                 num_obstacle_points=num_obstacle_points,
-                fk_sampler=self.fk_sampler
             )
             del data[key]
 

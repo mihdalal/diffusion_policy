@@ -244,7 +244,6 @@ class RobomimicPcdRunner(BasePcdRunner):
         self.rotation_transformer = rotation_transformer
         self.abs_action = abs_action
         self.tqdm_interval_sec = tqdm_interval_sec
-        self.fk_sampler = FrankaSampler("cpu", use_cache=True, num_fixed_points=4096)
         self.num_robot_points = num_robot_points
         self.num_obstacle_points = num_obstacle_points
 
@@ -300,7 +299,7 @@ class RobomimicPcdRunner(BasePcdRunner):
                 pcd_params = np_obs_dict['compute_pcd_params'] # (n_envs, n_obs, -1)
                 pcds = []
                 for idx in range(pcd_params.shape[0]):
-                    pcd = compute_full_pcd(pcd_params[idx], self.num_robot_points, self.num_obstacle_points, self.fk_sampler)
+                    pcd = compute_full_pcd(pcd_params[idx], self.num_robot_points, self.num_obstacle_points)
                     pcds.append(pcd)
                 pcds = np.stack(pcds, axis=0)
                 np_obs_dict['compute_pcd_params'] = pcds
