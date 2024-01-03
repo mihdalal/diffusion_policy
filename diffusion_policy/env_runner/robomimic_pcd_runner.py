@@ -173,7 +173,7 @@ class RobomimicPcdRunner(BasePcdRunner):
             for i in range(n_train):
                 train_idx = train_start_idx + i
                 enable_render = i < n_train_vis
-                init_state = f[f'data/demo_{train_idx}/states'][0]
+                init_state = f["data/demo_{}/obs/compute_pcd_params".format(train_idx)][0]
 
                 def init_fn(env, init_state=init_state, 
                     enable_render=enable_render):
