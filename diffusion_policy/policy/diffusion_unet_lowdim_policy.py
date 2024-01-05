@@ -184,8 +184,8 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         # normalize input
         assert 'valid_mask' not in batch
         nbatch = self.normalizer.normalize(batch)
-        obs = nbatch['obs']
-        action = nbatch['action']
+        obs = nbatch['obs'].cuda(non_blocking=True)
+        action = nbatch['action'].cuda(non_blocking=True)
 
         # handle different ways of passing observation
         local_cond = None
@@ -210,9 +210,9 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
 
         # generate impainting mask
         if self.pred_action_steps_only:
-            condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
+            condition_mask = torch.zeros_like(trajectory, dtype=torch.bool, device=trajectory.device)
         else:
-            condition_mask = self.mask_generator(trajectory.shape)
+            condition_mask = self.mask_generator(trajectory.shape).to(trajectory.device)
 
         # Sample noise that we'll add to the images
         noise = torch.randn(trajectory.shape, device=trajectory.device)
