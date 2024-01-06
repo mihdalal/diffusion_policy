@@ -233,6 +233,7 @@ class DiffusionUnetHybridPcdPolicy(BasePcdPolicy):
         assert 'past_action' not in obs_dict # not implemented yet
         # normalize input
         nobs = self.normalizer.normalize(obs_dict)
+        nobs = dict_apply(nobs, lambda x: x.cuda(non_blocking=True))
         value = next(iter(nobs.values()))
         B, To = value.shape[:2]
         T = self.horizon
@@ -298,7 +299,8 @@ class DiffusionUnetHybridPcdPolicy(BasePcdPolicy):
         # normalize input
         assert 'valid_mask' not in batch
         nobs = self.normalizer.normalize(batch['obs'])
-        nactions = self.normalizer['action'].normalize(batch['action'])
+        nobs = dict_apply(nobs, lambda x: x.cuda(non_blocking=True))
+        nactions = self.normalizer['action'].normalize(batch['action']).cuda(non_blocking=True)
         batch_size = nactions.shape[0]
         horizon = nactions.shape[1]
 
@@ -324,7 +326,7 @@ class DiffusionUnetHybridPcdPolicy(BasePcdPolicy):
             trajectory = cond_data.detach()
 
         # generate impainting mask
-        condition_mask = self.mask_generator(trajectory.shape)
+        condition_mask = self.mask_generator(trajectory.shape).to(trajectory.device)
 
         # Sample noise that we'll add to the images
         noise = torch.randn(trajectory.shape, device=trajectory.device)

@@ -1,4 +1,3 @@
-from copy import copy
 import os
 import wandb
 import numpy as np

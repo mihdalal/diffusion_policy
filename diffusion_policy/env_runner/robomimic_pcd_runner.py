@@ -70,6 +70,7 @@ class RobomimicPcdRunner(BasePcdRunner):
             n_envs=None,
             num_robot_points=2048,
             num_obstacle_points=4096,
+            world_size=1,
         ):
         super().__init__(output_dir)
 
@@ -92,7 +93,10 @@ class RobomimicPcdRunner(BasePcdRunner):
             env_meta['env_kwargs']['controller_configs']['control_delta'] = False
             rotation_transformer = RotationTransformer('axis_angle', 'rotation_6d')
 
-        def env_fn():
+        def env_fn(i):
+            gpu_idx = i % world_size
+            os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_idx)
+            os.environ['EGL_VISIBLE_DEVICES'] = str(gpu_idx)
             robomimic_env = create_env(
                 env_meta=env_meta, 
                 shape_meta=shape_meta
@@ -163,7 +167,15 @@ class RobomimicPcdRunner(BasePcdRunner):
                 max_episode_steps=max_steps
             )
 
-        env_fns = [env_fn] * n_envs
+        env_fns = []
+        for i in range(n_envs):
+            # have to do this in order to save the index state
+            class fn_wrapper:
+                def __init__(self, i):
+                    self.i = i
+                def __call__(self):
+                    return env_fn(self.i)
+            env_fns.append(fn_wrapper(i))
         env_seeds = list()
         env_prefixs = list()
         env_init_fn_dills = list()

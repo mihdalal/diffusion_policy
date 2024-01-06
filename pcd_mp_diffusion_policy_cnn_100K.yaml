@@ -178,3 +178,6 @@ val_dataloader:
   persistent_workers: false
   pin_memory: true
   shuffle: false
+ddp:
+  use: false
+  num_gpus: false
