@@ -64,7 +64,10 @@ def main(cfg: OmegaConf):
     # will use the same time.
     OmegaConf.resolve(cfg)
     cfg_dict = OmegaConf.to_container(cfg)
-    output_dir = HydraConfig.get().runtime.output_dir
+    if cfg.output_dir is None:
+        output_dir = HydraConfig.get().runtime.output_dir
+    else:
+        output_dir = cfg.output_dir
     import json
     with open(os.path.join(output_dir, 'cfg_ddp.json'), 'w') as f:
         json.dump(cfg_dict, f, indent=4)
