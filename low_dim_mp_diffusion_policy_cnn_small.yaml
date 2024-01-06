@@ -168,3 +168,4 @@ ddp:
   use: false
   num_gpus: false
 output_dir: null
+ckpt_tag: 'latest'

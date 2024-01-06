@@ -74,11 +74,11 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
 
         # resume training
         if cfg.training.resume:
-            lastest_ckpt_path = self.get_checkpoint_path()
+            lastest_ckpt_path = self.get_checkpoint_path(tag=cfg.ckpt_tag)
             if lastest_ckpt_path.is_file():
+                map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
                 print(f"Resuming from checkpoint {lastest_ckpt_path}")
-                self.load_checkpoint(path=lastest_ckpt_path)
-            self.model.cuda(rank) # just in case the loaded model is not on the right device
+                self.load_checkpoint(path=lastest_ckpt_path, map_location=map_location)
 
         # configure dataset
         dataset: BasePcdDataset
