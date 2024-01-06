@@ -56,12 +56,6 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         # configure model
         self.model: DiffusionUnetLowdimPolicy
         self.model = hydra.utils.instantiate(cfg.policy)
-        # if not cfg.training.debug:
-        #     self.model.model = torch.compile(self.model.model, mode='max-autotune')
-
-        self.ema_model: DiffusionUnetLowdimPolicy = None
-        if cfg.training.use_ema:
-            self.ema_model = copy.deepcopy(self.model)
 
         # configure training state
         self.optimizer = hydra.utils.instantiate(
@@ -80,6 +74,10 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         self.model.cuda(rank)
         if ddp:
             self.model.model = nn.parallel.DistributedDataParallel(self.model.model, device_ids=[rank])
+
+        self.ema_model: DiffusionUnetLowdimPolicy = None
+        if cfg.training.use_ema:
+            self.ema_model = copy.deepcopy(self.model)
 
         # resume training
         if cfg.training.resume:
