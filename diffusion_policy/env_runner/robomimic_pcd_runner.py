@@ -71,6 +71,7 @@ class RobomimicPcdRunner(BasePcdRunner):
             num_robot_points=2048,
             num_obstacle_points=4096,
             world_size=1,
+            target_pcd_type='joint',
         ):
         super().__init__(output_dir)
 
@@ -258,6 +259,7 @@ class RobomimicPcdRunner(BasePcdRunner):
         self.tqdm_interval_sec = tqdm_interval_sec
         self.num_robot_points = num_robot_points
         self.num_obstacle_points = num_obstacle_points
+        self.target_pcd_type = target_pcd_type
 
     def run(self, policy: BasePcdPolicy):
         device = policy.device
@@ -311,7 +313,8 @@ class RobomimicPcdRunner(BasePcdRunner):
                 pcd_params = np_obs_dict['compute_pcd_params'] # (n_envs, n_obs, -1)
                 pcds = []
                 for idx in range(pcd_params.shape[0]):
-                    pcd = compute_full_pcd(pcd_params[idx], self.num_robot_points, self.num_obstacle_points)
+                    pcd = compute_full_pcd(pcd_params[idx], self.num_robot_points, 
+                                           self.num_obstacle_points, target_pcd_type=self.target_pcd_type)
                     pcds.append(pcd)
                 pcds = np.stack(pcds, axis=0)
                 np_obs_dict['compute_pcd_params'] = pcds

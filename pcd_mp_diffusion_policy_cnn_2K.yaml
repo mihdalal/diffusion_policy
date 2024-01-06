@@ -103,6 +103,7 @@ task:
     seed: 42
     use_legacy_normalizer: false
     val_ratio: 0.02
+    target_pcd_type: 'joint'
     shape_meta:
       action:
         shape:
@@ -135,6 +136,7 @@ task:
     - 128
     test_start_seed: 100000
     train_start_idx: 0
+    target_pcd_type: 'joint'
     shape_meta:
       action:
         shape:

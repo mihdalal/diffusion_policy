@@ -48,6 +48,7 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
             val_ratio=0.0,
             num_robot_points=2048,
             num_obstacle_points=4096,
+            target_pcd_type='joint',
         ):
         rotation_transformer = RotationTransformer(
             from_rep='axis_angle', to_rep=rotation_rep)
@@ -152,6 +153,7 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
         self.use_legacy_normalizer = use_legacy_normalizer
         self.num_robot_points = num_robot_points
         self.num_obstacle_points = num_obstacle_points
+        self.target_pcd_type = target_pcd_type
 
     def get_validation_dataset(self):
         val_set = copy.copy(self)
@@ -253,6 +255,7 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
                 pcd_params=obs_dict[key],
                 num_robot_points=num_robot_points,
                 num_obstacle_points=num_obstacle_points,
+                target_pcd_type=self.target_pcd_type
             )
             del data[key]
 
