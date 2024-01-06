@@ -181,4 +181,4 @@ val_dataloader:
 ddp:
   use: false
   num_gpus: false
-output_dir: None
+output_dir: null
