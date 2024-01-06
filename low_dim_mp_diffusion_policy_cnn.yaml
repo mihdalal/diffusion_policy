@@ -10,10 +10,10 @@ checkpoint:
     monitor_key: test_mean_score
 dataloader:
   batch_size: 256
-  num_workers: 0
-  # persistent_workers: false
+  num_workers: 1
+  persistent_workers: false
   pin_memory: true
-  shuffle: false
+  shuffle: true
 ema:
   _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
   inv_gamma: 1.0
@@ -163,4 +163,7 @@ val_dataloader:
   num_workers: 1
   persistent_workers: false
   pin_memory: true
-  shuffle: false
+  shuffle: true
+ddp:
+  use: false
+  num_gpus: false

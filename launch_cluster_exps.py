@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
     cfg_dict = OmegaConf.to_container(cfg_process, resolve=True)
     # dump cfg_dict to output_dir
     with open(os.path.join(output_dir, 'cfg.json'), 'w') as f:
-        json.dump(cfg_dict, f)
+        json.dump(cfg_dict, f, indent=4)
     # absolute path to cluster_launch_functions.py
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cluster_launch_functions.py")
     wrapped_callable = WrappedCallable(output_dir, sif_path, python_cmd, file_path)

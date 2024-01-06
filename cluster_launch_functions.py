@@ -4,32 +4,24 @@ def function(output_dir, checkpoint_path=None):
     sys.stdout = open(sys.stdout.fileno(), mode='w', buffering=1)
     sys.stderr = open(sys.stderr.fileno(), mode='w', buffering=1)
 
-    import hydra
     from omegaconf import OmegaConf
-    from diffusion_policy.workspace.base_workspace import BaseWorkspace
 
     import json
     import os
+    from train import train
+    import torch.multiprocessing as mp
+
     os.environ['WANDB_API_KEY'] = "010fcba9b0530d8e86f54a8e7e68725a06be7dba"
     with open(os.path.join(output_dir, 'cfg.json'), 'r') as f:
         cfg_dict = json.load(f)
 
     cfg = OmegaConf.create(cfg_dict)
-    # initialize the hydra runtime with the config
-    cls = hydra.utils.get_class(cfg._target_)
-    workspace: BaseWorkspace = cls(cfg, output_dir)
-    import torch
-    torch.backends.cudnn.benchmark = True
-    torch.set_float32_matmul_precision("medium")
-    if checkpoint_path != 'None':
-        workspace.load_checkpoint(checkpoint_path)
-    def handler(signum, frame):
-        print('Signal handler called with signal', signum)
-        workspace.save_checkpoint()
-        exit()
-    import signal 
-    signal.signal(signal.SIGUSR1, handler)
-    workspace.run()
+    with open(os.path.join(output_dir, 'cfg_ddp.json'), 'w') as f:
+        json.dump(cfg_dict, f, indent=4)
+    if cfg.ddp.use:
+        mp.spawn(train, nprocs=cfg.ddp.num_gpus, args=(output_dir, cfg.ddp.num_gpus, checkpoint_path))
+    else:
+        train(0, output_dir, 1, checkpoint_path)
     
 
 if __name__ == "__main__":

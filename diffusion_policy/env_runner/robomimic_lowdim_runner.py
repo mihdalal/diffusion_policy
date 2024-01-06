@@ -1,3 +1,4 @@
+from copy import copy
 import os
 import wandb
 import numpy as np
@@ -65,7 +66,8 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
             past_action=False,
             abs_action=False,
             tqdm_interval_sec=5.0,
-            n_envs=None
+            n_envs=None, 
+            world_size=1
         ):
         """
         Assuming:
@@ -109,7 +111,10 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
             env_meta['env_kwargs']['controller_configs']['control_delta'] = False
             rotation_transformer = RotationTransformer('axis_angle', 'rotation_6d')
 
-        def env_fn():
+        def env_fn(i):
+            gpu_idx = i % world_size
+            os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_idx)
+            os.environ['EGL_VISIBLE_DEVICES'] = str(gpu_idx)
             robomimic_env = create_env(
                     env_meta=env_meta, 
                     obs_keys=obs_keys
@@ -140,8 +145,15 @@ class RobomimicLowdimRunner(BaseLowdimRunner):
                     n_action_steps=env_n_action_steps,
                     max_episode_steps=max_steps
                 )
-
-        env_fns = [env_fn] * n_envs
+        env_fns = []
+        for i in range(n_envs):
+            # have to do this in order to save the index state
+            class fn_wrapper:
+                def __init__(self, i):
+                    self.i = i
+                def __call__(self):
+                    return env_fn(self.i)
+            env_fns.append(fn_wrapper(i))
         env_seeds = list()
         env_prefixs = list()
         env_init_fn_dills = list()
