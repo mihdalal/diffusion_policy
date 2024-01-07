@@ -4,6 +4,7 @@ Training:
 python train.py --config-name=train_diffusion_lowdim_workspace
 """
 
+import subprocess
 import sys
 import os
 # use line-buffering for both stdout and stderr
@@ -76,6 +77,10 @@ def main(cfg: OmegaConf):
     # resolve immediately so all the ${now:} resolvers
     # will use the same time.
     OmegaConf.resolve(cfg)
+    dataset_name = cfg.task.dataset.dataset_path.split('/')[-1]
+    print(subprocess.run(['rsync', '-azvP', f'{cfg.task.dataset.dataset_path}', f'/dev/shm/{dataset_name}'], capture_output=True))
+    cfg.task.dataset.dataset_path = f'/dev/shm/{dataset_name}'
+    cfg.task.env_runner.dataset_path = f'/dev/shm/{dataset_name}'
     cfg_dict = OmegaConf.to_container(cfg)
     if cfg.output_dir is None or cfg.start_from_checkpoint:
         # if we are not given an output dir -> generate one
