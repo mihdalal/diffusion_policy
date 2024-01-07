@@ -207,7 +207,10 @@ class RobomimicReplayPcdDataset(BasePcdDataset):
         
         # pcd
         for key in self.pcd_keys:
-            pcd_size = self.num_robot_points * 2 + self.num_obstacle_points
+            if self.target_pcd_type == 'joint':
+                pcd_size = self.num_robot_points * 2 + self.num_obstacle_points
+            elif self.target_pcd_type == 'ee':
+                pcd_size = self.num_robot_points + self.num_obstacle_points + 128 
             normalizer[key] = get_identity_normalizer_from_stat(
                 dict(
                     max=np.ones((pcd_size, 4)).astype(np.float32),
