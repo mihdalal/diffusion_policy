@@ -44,7 +44,7 @@ def setup(rank, world_size):
 class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
     include_keys = ['global_step', 'epoch']
 
-    def __init__(self, cfg: OmegaConf, output_dir=None):
+    def __init__(self, cfg: OmegaConf, output_dir=None, rank=0, world_size=1, ddp=False):
         super().__init__(cfg, output_dir=output_dir)
 
         # set seed
@@ -57,6 +57,18 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         self.model: DiffusionUnetLowdimPolicy
         self.model = hydra.utils.instantiate(cfg.policy)
 
+        setup(rank, world_size)
+
+        self.device = torch.device(rank)
+        torch.cuda.set_device(rank)
+        self.model.cuda(rank)
+        if ddp:
+            self.model.model = nn.parallel.DistributedDataParallel(self.model.model, device_ids=[rank])
+
+        self.ema_model: DiffusionUnetLowdimPolicy = None
+        if cfg.training.use_ema:
+            self.ema_model = copy.deepcopy(self.model)
+
         # configure training state
         self.optimizer = hydra.utils.instantiate(
             cfg.optimizer, params=self.model.parameters())
@@ -67,17 +79,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
     def run(self, world_size=1, rank=0, ddp=False):
         cfg = copy.deepcopy(self.cfg)
 
-        setup(rank, world_size)
-
-        device = torch.device(rank)
-        torch.cuda.set_device(rank)
-        self.model.cuda(rank)
-        if ddp:
-            self.model.model = nn.parallel.DistributedDataParallel(self.model.model, device_ids=[rank])
-
-        self.ema_model: DiffusionUnetLowdimPolicy = None
-        if cfg.training.use_ema:
-            self.ema_model = copy.deepcopy(self.model)
+        device = self.device
 
         # resume training
         if cfg.training.resume:

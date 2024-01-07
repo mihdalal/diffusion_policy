@@ -37,7 +37,7 @@ OmegaConf.register_new_resolver("eval", eval, replace=True)
 class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
     include_keys = ['global_step', 'epoch']
 
-    def __init__(self, cfg: OmegaConf, output_dir=None):
+    def __init__(self, cfg: OmegaConf, output_dir=None, rank=0, world_size=1, ddp=False):
         super().__init__(cfg, output_dir=output_dir)
 
         # set seed
@@ -47,22 +47,12 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
         random.seed(seed)
 
         # configure model
-        self.model: DiffusionUnetHybridPcdPolicy = hydra.utils.instantiate(cfg.policy)
-
-        # configure training state
-        self.optimizer = hydra.utils.instantiate(
-            cfg.optimizer, params=self.model.parameters())
-
-        # configure training state
-        self.global_step = 0
-        self.epoch = 0
-
-    def run(self, world_size=1, rank=0, ddp=False):
-        cfg = copy.deepcopy(self.cfg)
+        self.model: DiffusionUnetHybridPcdPolicy
+        self.model = hydra.utils.instantiate(cfg.policy)
 
         setup(rank, world_size)
 
-        device = torch.device(rank)
+        self.device = torch.device(rank)
         torch.cuda.set_device(rank)
         self.model.cuda(rank)
         if ddp:
@@ -71,6 +61,18 @@ class TrainDiffusionUnetHybridPcdWorkspace(BaseWorkspace):
         self.ema_model: DiffusionUnetHybridPcdPolicy = None
         if cfg.training.use_ema:
             self.ema_model = copy.deepcopy(self.model)
+
+        # configure training state
+        self.optimizer = hydra.utils.instantiate(
+            cfg.optimizer, params=self.model.parameters())
+        
+        self.global_step = 0
+        self.epoch = 0
+
+    def run(self, world_size=1, rank=0, ddp=False):
+        cfg = copy.deepcopy(self.cfg)
+
+        device = self.device
 
         # resume training
         if cfg.training.resume:

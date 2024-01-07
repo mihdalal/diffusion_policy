@@ -42,7 +42,20 @@ def train(rank, output_dir, world_size, checkpoint_path='None'):
         cfg_dict = json.load(f)
     cfg = OmegaConf.create(cfg_dict)
     cls = hydra.utils.get_class(cfg._target_)
-    workspace: BaseWorkspace = cls(cfg, output_dir)
+    workspace: BaseWorkspace = cls(cfg, output_dir, rank=rank, world_size=world_size)
+    if cfg.start_from_checkpoint:
+        # basically output_dir is a newly generated directory for the current exp
+        # cfg.output_dir holds the old directory from which the checkpoint came from
+        # we reset the cfg output_dir to None after so that future checkpoints will 
+        # load from the newly generated output directory
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % rank}
+        path = pathlib.Path(cfg.output_dir).joinpath('checkpoints', f'{cfg.ckpt_tag}.ckpt')
+        workspace.load_checkpoint(path=path, map_location=map_location)
+        workspace.global_step = 0
+        workspace.epoch = 0
+        workspace._output_dir = output_dir
+        cfg.output_dir = None
+
     if checkpoint_path != 'None':
         workspace.load_checkpoint(checkpoint_path)
     def handler(signum, frame):
@@ -64,7 +77,11 @@ def main(cfg: OmegaConf):
     # will use the same time.
     OmegaConf.resolve(cfg)
     cfg_dict = OmegaConf.to_container(cfg)
-    if cfg.output_dir is None:
+    if cfg.output_dir is None or cfg.start_from_checkpoint:
+        # if we are not given an output dir -> generate one
+        # OR if we are starting from a checkpoint -> generate a new output dir
+        # the logic in train.py will handle loading from the old output dir 
+        # which is stored in cfg.output_dir
         output_dir = HydraConfig.get().runtime.output_dir
     else:
         output_dir = cfg.output_dir

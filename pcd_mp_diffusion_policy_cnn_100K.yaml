@@ -185,3 +185,4 @@ ddp:
   num_gpus: false
 output_dir: null
 ckpt_tag: 'latest'
+start_from_checkpoint: false

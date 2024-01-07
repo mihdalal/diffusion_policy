@@ -64,7 +64,14 @@ class WrappedCallable(submitit.helpers.Checkpointable):
 def main(cfg: DictConfig):
     sif_path = "/home/sbahl2/research/neural_mp/neural_mp/containers/neural_mp_bash.sif"
     # Generate the command
-    output_dir = HydraConfig.get().runtime.output_dir
+    if cfg.output_dir is None or cfg.start_from_checkpoint:
+        # if we are not given an output dir -> generate one
+        # OR if we are starting from a checkpoint -> generate a new output dir
+        # the logic in train.py will handle loading from the old output dir 
+        # which is stored in cfg.output_dir
+        output_dir = HydraConfig.get().runtime.output_dir
+    else:
+        output_dir = cfg.output_dir
     cfg_process = cfg.copy()
     python_cmd = subprocess.check_output("which python", shell=True).decode("utf-8")[:-1]
     executor = submitit.AutoExecutor(
@@ -79,7 +86,6 @@ def main(cfg: DictConfig):
     # absolute path to cluster_launch_functions.py
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cluster_launch_functions.py")
     wrapped_callable = WrappedCallable(output_dir, sif_path, python_cmd, file_path)
-    t0 = time.time()
     job = executor.submit(wrapped_callable, None)
 
 if __name__ == "__main__":
