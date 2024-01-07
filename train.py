@@ -78,7 +78,7 @@ def main(cfg: OmegaConf):
     # will use the same time.
     OmegaConf.resolve(cfg)
     dataset_name = cfg.task.dataset.dataset_path.split('/')[-1]
-    print(subprocess.run(['rsync', '-azvP', f'{cfg.task.dataset.dataset_path}', f'/dev/shm/{dataset_name}'], capture_output=True))
+    print(subprocess.run(['cp', f'{cfg.task.dataset.dataset_path}', f'/dev/shm/{dataset_name}'], capture_output=True))
     cfg.task.dataset.dataset_path = f'/dev/shm/{dataset_name}'
     cfg.task.env_runner.dataset_path = f'/dev/shm/{dataset_name}'
     cfg_dict = OmegaConf.to_container(cfg)
