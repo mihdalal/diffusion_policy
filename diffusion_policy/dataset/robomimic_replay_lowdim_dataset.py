@@ -43,8 +43,8 @@ class RobomimicReplayLowdimDataset(BaseLowdimDataset):
         replay_buffer = ReplayBuffer.create_empty_numpy()
         with h5py.File(dataset_path) as file:
             demos = file['data']
-            for i in tqdm(range(len(demos)), desc="Loading hdf5 to ReplayBuffer"):
-                demo = demos[f'demo_{i}']
+            for demo_key in tqdm(list(demos.keys())):
+                demo = demos[demo_key]
                 episode = _data_to_obs(
                     raw_obs=demo['obs'],
                     raw_actions=demo['actions'][:].astype(np.float32),
