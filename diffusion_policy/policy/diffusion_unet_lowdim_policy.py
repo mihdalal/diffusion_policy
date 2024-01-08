@@ -104,7 +104,10 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
 
         assert 'obs' in obs_dict
         assert 'past_action' not in obs_dict # not implemented yet
-        nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
+        # nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
+        nobs = obs_dict['obs']
+        # cat all obs keys:
+        nobs = torch.cat([nobs[k] for k in nobs.keys()], dim=-1)
         nobs = nobs.cuda(non_blocking=True)
         B, _, Do = nobs.shape
         To = self.n_obs_steps
@@ -184,9 +187,10 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
     def compute_loss(self, batch):
         # normalize input
         assert 'valid_mask' not in batch
-        nbatch = self.normalizer.normalize(batch)
-        obs = nbatch['obs'].cuda(non_blocking=True)
-        action = nbatch['action'].cuda(non_blocking=True)
+        # nbatch = self.normalizer.normalize(batch)
+        obs = batch['obs']
+        obs = torch.cat([obs[k] for k in obs.keys()], dim=-1).cuda(non_blocking=True)
+        action = batch['actions'].cuda(non_blocking=True)
 
         # handle different ways of passing observation
         local_cond = None

@@ -6,6 +6,7 @@ if __name__ == "__main__":
     ROOT_DIR = str(pathlib.Path(__file__).parent.parent.parent)
     sys.path.append(ROOT_DIR)
     os.chdir(ROOT_DIR)
+from robomimic.utils.dataset import SequenceDataset
 import torch
 import torch._dynamo                                                    
 import os
@@ -91,8 +92,24 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
 
         # configure dataset
         dataset: BaseLowdimDataset
-        dataset = hydra.utils.instantiate(cfg.task.dataset)
-        assert isinstance(dataset, BaseLowdimDataset)
+        # dataset = hydra.utils.instantiate(cfg.task.dataset)
+        dataset = SequenceDataset(
+            hdf5_path=cfg.task.dataset.dataset_path,
+            obs_keys=cfg.task.dataset.obs_keys,
+            dataset_keys=['actions'],
+            frame_stack=1,
+            seq_length=cfg.horizon,
+            pad_frame_stack=True,
+            pad_seq_length=True,
+            get_pad_mask=False,
+            goal_mode=None,
+            hdf5_cache_mode=None,
+            hdf5_use_swmr=True,
+            hdf5_normalize_obs=False,
+            filter_by_attribute='train',
+            load_next_obs=False,
+        )
+        # assert isinstance(dataset, BaseLowdimDataset)
         if ddp:
             train_sampler = torch.utils.data.distributed.DistributedSampler(dataset,
                                                                         num_replicas=world_size,
@@ -100,10 +117,26 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         else:
             train_sampler = None
         train_dataloader = DataLoader(dataset, sampler=train_sampler, **cfg.dataloader)
-        normalizer = dataset.get_normalizer()
+        # normalizer = dataset.get_normalizer()
 
         # configure validation dataset
-        val_dataset = dataset.get_validation_dataset()
+        # val_dataset = dataset.get_validation_dataset()
+        val_dataset = SequenceDataset(
+            hdf5_path=cfg.task.dataset.dataset_path,
+            obs_keys=cfg.task.dataset.obs_keys,
+            dataset_keys=['actions'],
+            frame_stack=1,
+            seq_length=cfg.horizon,
+            pad_frame_stack=True,
+            pad_seq_length=True,
+            get_pad_mask=False,
+            goal_mode=None,
+            hdf5_cache_mode=None,
+            hdf5_use_swmr=True,
+            hdf5_normalize_obs=False,
+            filter_by_attribute='valid',
+            load_next_obs=False,
+        )
         if ddp:
             val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset,
                                                                         num_replicas=world_size,
@@ -113,9 +146,9 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
 
         val_dataloader = DataLoader(val_dataset, sampler=val_sampler, **cfg.val_dataloader)
 
-        self.model.set_normalizer(normalizer)
-        if cfg.training.use_ema:
-            self.ema_model.set_normalizer(normalizer)
+        # self.model.set_normalizer(normalizer)
+        # if cfg.training.use_ema:
+        #     self.ema_model.set_normalizer(normalizer)
 
         # configure lr scheduler
         lr_scheduler = get_scheduler(
